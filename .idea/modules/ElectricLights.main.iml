@@ -18,4 +18,9 @@
     <option name="platformVersion" value="43.2.21" />
     <option name="srgType" value="TSRG" />
   </component>
+  <component name="NewModuleRootManager" inherit-compiler-output="true">
+    <exclude-output />
+    <orderEntry type="inheritedJdk" />
+    <orderEntry type="sourceFolder" forTests="false" />
+  </component>
 </module>

@@ -5,31 +5,28 @@ import net.minecraft.client.Minecraft;
 import net.minecraft.world.item.BlockItem;
 import net.minecraft.world.item.CreativeModeTab;
 import net.minecraft.world.item.Item;
-import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.Blocks;
+import net.minecraft.world.level.block.entity.BlockEntityType;
 import net.minecraft.world.level.block.state.BlockBehaviour;
 import net.minecraft.world.level.material.Material;
 import net.minecraftforge.api.distmarker.Dist;
 import net.minecraftforge.common.MinecraftForge;
-import net.minecraftforge.event.GrindstoneEvent;
-import net.minecraftforge.event.TickEvent;
 import net.minecraftforge.eventbus.api.IEventBus;
 import net.minecraftforge.eventbus.api.SubscribeEvent;
 import net.minecraftforge.fml.common.Mod;
 import net.minecraftforge.fml.event.lifecycle.FMLClientSetupEvent;
 import net.minecraftforge.fml.event.lifecycle.FMLCommonSetupEvent;
 import net.minecraftforge.event.server.ServerStartingEvent;
-import net.minecraftforge.fml.event.lifecycle.FMLDedicatedServerSetupEvent;
 import net.minecraftforge.fml.javafmlmod.FMLJavaModLoadingContext;
 import net.minecraftforge.registries.DeferredRegister;
 import net.minecraftforge.registries.ForgeRegistries;
 import net.minecraftforge.registries.RegistryObject;
-import net.viniciusaportela.electriclights.block.ElectricBlock;
-import org.jetbrains.annotations.NotNull;
+import net.viniciusaportela.electriclights.block.electricblock.ElectricBlock;
+import net.viniciusaportela.electriclights.block.electricblock.ElectricBlockEntity;
+import net.viniciusaportela.electriclights.block.electricblock.ElectricBlockEventHandler;
+import net.viniciusaportela.electriclights.block.electriclight.ElectricLightBlock;
 import org.slf4j.Logger;
-
-import java.util.Objects;
 
 // The value here should match an entry in the META-INF/mods.toml file
 @Mod(ElectricLights.MODID)
@@ -44,14 +41,20 @@ public class ElectricLights {
     // Create a Deferred Register to hold Items which will all be registered under the "electric_lights" namespace
     public static final DeferredRegister<Item> ITEMS = DeferredRegister.create(ForgeRegistries.ITEMS, MODID);
 
+    public static final DeferredRegister<BlockEntityType<?>> TILE_ENTITY_TYPES = DeferredRegister.create(ForgeRegistries.BLOCK_ENTITY_TYPES, ElectricLights.MODID);
+
+
     // Creates a new Block with the id "electric_lights:example_block", combining the namespace and path
-    public static final RegistryObject<Block> ELECTRIC_BLOCK = BLOCKS.register("electric_block", () -> new Block(BlockBehaviour.Properties.of(Material.METAL)));
+    public static final RegistryObject<Block> ELECTRIC_BLOCK = BLOCKS.register("electric_block", () -> new ElectricBlock(BlockBehaviour.Properties.of(Material.METAL)));
     // Creates a new BlockItem with the id "electric_lights:example_block", combining the namespace and path
     public static final RegistryObject<Item> ELECTRIC_BLOCK_ITEM = ITEMS.register("electric_block", () -> new BlockItem(ELECTRIC_BLOCK.get(), new Item.Properties().tab(CreativeModeTab.TAB_BUILDING_BLOCKS)));
 
-    public static final RegistryObject<Block> ELECTRIC_LIGHT_BLOCK = BLOCKS.register("electric_light", () -> new ElectricBlock(BlockBehaviour.Properties.of(Material.METAL).lightLevel((state) -> state.getValue(ElectricBlock.ACTIVE) ? 15 : 0)));
+    public static final RegistryObject<Block> ELECTRIC_LIGHT_BLOCK = BLOCKS.register("electric_light", () -> new ElectricLightBlock(BlockBehaviour.Properties.of(Material.METAL).lightLevel((state) -> state.getValue(ElectricLightBlock.ACTIVE) ? 15 : 0)));
 
     public static final RegistryObject<Item> ELECTRIC_LIGHT_ITEM = ITEMS.register("electric_light", () -> new BlockItem(ELECTRIC_LIGHT_BLOCK.get(), new Item.Properties().tab(CreativeModeTab.TAB_BUILDING_BLOCKS)));
+
+    public static final RegistryObject<BlockEntityType<ElectricBlockEntity>> ELECTRIC_BLOCK_ENTITY = TILE_ENTITY_TYPES.register("electric_block",
+            () -> BlockEntityType.Builder.of(ElectricBlockEntity::new, ELECTRIC_BLOCK.get()).build(null));
 
     public ElectricLights() {
         IEventBus modEventBus = FMLJavaModLoadingContext.get().getModEventBus();
@@ -61,11 +64,14 @@ public class ElectricLights {
 
         // Register the Deferred Register to the mod event bus so blocks get registered
         BLOCKS.register(modEventBus);
-        // Register the Deferred Register to the mod event bus so items get registered
         ITEMS.register(modEventBus);
+        TILE_ENTITY_TYPES.register(modEventBus);
+
+        ElectricBlockEventHandler electricBlockEventHandler = new ElectricBlockEventHandler();
 
         // Register ourselves for server and other game events we are interested in
         MinecraftForge.EVENT_BUS.register(this);
+        MinecraftForge.EVENT_BUS.register(electricBlockEventHandler);
     }
 
     private void commonSetup(final FMLCommonSetupEvent event) {

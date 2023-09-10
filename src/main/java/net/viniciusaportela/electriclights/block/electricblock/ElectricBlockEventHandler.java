@@ -2,7 +2,6 @@ package net.viniciusaportela.electriclights.block.electricblock;
 
 import com.mojang.logging.LogUtils;
 import net.minecraft.core.BlockPos;
-import net.minecraft.world.level.Level;
 import net.minecraft.world.level.LevelAccessor;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.entity.BlockEntity;
@@ -28,7 +27,25 @@ public class ElectricBlockEventHandler {
         if (placedBlock.equals(ElectricLights.ELECTRIC_BLOCK.get())) {
             LOGGER.info("Placed electric block");
             lookForNearElectricLights(event.getPos(), 5, event.getLevel());
-            lightUpElectricLights(event.getPos(), event.getLevel());
+//            lightUpElectricLights(event.getPos(), event.getLevel());
+        }
+
+        // TODO when place ElectricLight search for a electric block
+        if (placedBlock.equals(ElectricLights.ELECTRIC_LIGHT_BLOCK.get())) {
+            LOGGER.info("Placed electric light");
+            connectToElectricBlock(event.getPos(), event.getLevel());
+        }
+    }
+
+    void connectToElectricBlock(BlockPos blockPos, LevelAccessor level) {
+        List<BlockPos> electricBlocks = BlockUtils.lookForBlocksInRange(blockPos, 5, ElectricLights.ELECTRIC_BLOCK.get(), level);
+
+        for (BlockPos electricBlockPos: electricBlocks) {
+            ElectricBlockEntity electricBlockE = (ElectricBlockEntity) level.getBlockEntity(electricBlockPos);
+            if (electricBlockE != null) {
+                electricBlockE.connectedLightPositions.add(blockPos);
+                break;
+            }
         }
     }
 
@@ -42,7 +59,7 @@ public class ElectricBlockEventHandler {
             ElectricBlockEntity electricBlockEntity = (ElectricBlockEntity) level.getBlockEntity(event.getPos());
 
             if (electricBlockEntity != null) {
-                lightDownElectricLights(event.getPos(), event.getLevel());
+//                lightDownElectricLights(event.getPos(), event.getLevel());
             }
         }
     }
@@ -60,18 +77,22 @@ public class ElectricBlockEventHandler {
         }
     }
 
-    public void lightUpElectricLights(BlockPos position, LevelAccessor level) {
-        ElectricBlockEntity electricBlock = (ElectricBlockEntity) level.getBlockEntity(position);
+    static public void lightUpElectricLights(BlockPos position, LevelAccessor level) {
+        BlockEntity blockEntity = (BlockEntity) level.getBlockEntity(position);
 
-        if (electricBlock != null) {
+        if (blockEntity instanceof ElectricBlockEntity) {
+            ElectricBlockEntity electricBlock = (ElectricBlockEntity) blockEntity;
             for(BlockPos lightPos: electricBlock.connectedLightPositions) {
                 BlockState blockState = level.getBlockState(lightPos);
-                level.setBlock(lightPos, blockState.setValue(ElectricLightBlock.ACTIVE, true), 3);
+
+                if (blockState.getBlock().equals(ElectricLights.ELECTRIC_LIGHT_BLOCK.get())) {
+                    level.setBlock(lightPos, blockState.setValue(ElectricLightBlock.ACTIVE, true), 3);
+                }
             }
         }
     }
 
-    public void lightDownElectricLights(BlockPos position, LevelAccessor level) {
+    static public void lightDownElectricLights(BlockPos position, LevelAccessor level) {
         ElectricBlockEntity electricBlock = (ElectricBlockEntity) level.getBlockEntity(position);
 
         // TODO when break block, off all lights around (but before verify if has another electric light near by)

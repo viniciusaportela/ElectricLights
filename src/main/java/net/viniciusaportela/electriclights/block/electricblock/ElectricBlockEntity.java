@@ -11,51 +11,40 @@ import net.minecraft.world.level.block.state.BlockState;
 import net.minecraftforge.common.capabilities.Capability;
 import net.minecraftforge.common.capabilities.ForgeCapabilities;
 import net.minecraftforge.common.util.LazyOptional;
-import net.minecraftforge.energy.EnergyStorage;
 import net.minecraftforge.energy.IEnergyStorage;
+import net.viniciusaportela.electriclights.CustomEnergyStorage;
 import net.viniciusaportela.electriclights.ElectricLights;
+import net.viniciusaportela.electriclights.config.ServerConfig;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
-import org.slf4j.Logger;
 
-import java.util.ArrayList;
-import java.util.List;
+import java.util.*;
 
 public class ElectricBlockEntity extends BlockEntity {
-    private static final Logger LOGGER = LogUtils.getLogger();
 
     private LazyOptional<IEnergyStorage> lazyEnergyHandler = LazyOptional.empty();
 
-    public static final int MAX_ENERGY = 500;
-    public static final int ENERGY_USAGE_PER_LIGHT = 5;
-
-    private final EnergyStorage energyStorage = new EnergyStorage(MAX_ENERGY, MAX_ENERGY) {
+    private final CustomEnergyStorage energyStorage = new CustomEnergyStorage() {
         @Override
         public int receiveEnergy(int maxReceive, boolean simulate) {
-            LOGGER.info("receive energy");
             int value = super.receiveEnergy(maxReceive, simulate);
             if (!simulate) {
                 setChanged();
-//                level.sendBlockUpdated(worldPosition, level.getBlockState(worldPosition), level.getBlockState(worldPosition), 2);
             }
             return value;
         }
 
-        // USE EXTRACT ENERGY (?)
         @Override
         public int extractEnergy(int maxExtract, boolean simulate) {
-            LOGGER.info("extract energy");
             int value = super.extractEnergy(maxExtract, simulate);
             if (!simulate) {
                 setChanged();
-//                level.sendBlockUpdated(worldPosition, level.getBlockState(worldPosition), level.getBlockState(worldPosition), 2);
             }
             return value;
         }
     };
 
-    // TODO use map instead, because every time add/update, will have duplicates
-    public List<BlockPos> connectedLightPositions = new ArrayList<>();
+    public Set<String> connectedLightPositions = new HashSet<>();
 
     @Override
     public void onLoad() {
@@ -99,30 +88,20 @@ public class ElectricBlockEntity extends BlockEntity {
     }
 
     private void saveConnectedBlocks(CompoundTag nbt) {
-        List<Integer> entityPositions = new ArrayList<>();
-
-        for (BlockPos connectedLight: connectedLightPositions) {
-            entityPositions.add(connectedLight.getX());
-            entityPositions.add(connectedLight.getZ());
-            entityPositions.add(connectedLight.getY());
-        }
-
-        nbt.putIntArray("connectedPositions", entityPositions);
+        ElectricLights.LOGGER.info(connectedLightPositions.toString());
+        nbt.putString("connectedPositions", String.join(";", connectedLightPositions));
     }
 
     private void loadConnectedBlocks(CompoundTag nbt) {
-        int[] connectedPositions = nbt.getIntArray("connectedPositions");
+        String stringifedPositionsRaw = nbt.getString("connectedPositions");
+        String[] stringifedPositions = stringifedPositionsRaw.split(";");
 
-        for (int i = 0; i < connectedPositions.length ; i += 3) {
-            int x = connectedPositions[i];
-            int z = connectedPositions[i + 1];
-            int y = connectedPositions[i + 2];
-
-            connectedLightPositions.add(new BlockPos(x, z, y));
-        }
+        connectedLightPositions.addAll(Arrays.asList(stringifedPositions));
     }
 
     public static <T extends BlockEntity> void tick(Level level, BlockPos blockPos, BlockState blockState, T blockEntity) {
+        int energyUsagePerTick = Math.min(ServerConfig.ELECTRIC_LIGHT_COST.get() / 20, 1);
+
         ElectricBlockEntity electricBlockEntity = (ElectricBlockEntity) blockEntity;
 
         for (final var direction : Direction.values()) {
@@ -130,18 +109,18 @@ public class ElectricBlockEntity extends BlockEntity {
 
             if (sideBlockEntity != null) {
                 sideBlockEntity.getCapability(ForgeCapabilities.ENERGY, direction.getOpposite()).ifPresent(storage -> {
-                    int energyAmount = electricBlockEntity.connectedLightPositions.size() * ElectricBlockEntity.ENERGY_USAGE_PER_LIGHT;
+                    int energyAmount = electricBlockEntity.connectedLightPositions.size() * energyUsagePerTick;
+                    electricBlockEntity.energyStorage.setEnergyUsage(energyAmount);
 
                     int extracted = storage.extractEnergy(energyAmount, false);
-                    LOGGER.info("Extracting " + extracted);
                     electricBlockEntity.energyStorage.receiveEnergy(extracted, false);
                 });
             }
         }
 
-        if (electricBlockEntity.energyStorage.getEnergyStored() > electricBlockEntity.connectedLightPositions.size() * ElectricBlockEntity.ENERGY_USAGE_PER_LIGHT) {
+        if (electricBlockEntity.energyStorage.getEnergyStored() >= electricBlockEntity.connectedLightPositions.size() * energyUsagePerTick) {
             ElectricBlockEventHandler.lightUpElectricLights(electricBlockEntity.getBlockPos(), electricBlockEntity.getLevel());
-            electricBlockEntity.energyStorage.extractEnergy(electricBlockEntity.connectedLightPositions.size() * ElectricBlockEntity.ENERGY_USAGE_PER_LIGHT, false);
+            electricBlockEntity.energyStorage.extractEnergy(electricBlockEntity.connectedLightPositions.size() * energyUsagePerTick, false);
         } else {
             ElectricBlockEventHandler.lightDownElectricLights(electricBlockEntity.getBlockPos(), electricBlockEntity.getLevel());
         }

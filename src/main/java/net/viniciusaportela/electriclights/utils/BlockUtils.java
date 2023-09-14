@@ -4,8 +4,10 @@ import net.minecraft.core.BlockPos;
 import net.minecraft.world.level.LevelAccessor;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.phys.Vec3;
+import net.viniciusaportela.electriclights.ElectricLights;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 
 public class BlockUtils {
@@ -31,5 +33,30 @@ public class BlockUtils {
         }
 
         return foundBlocks;
+    }
+
+    public static String getKeyFromBlockPos(BlockPos blockPos) {
+        String finalString = "";
+
+        finalString += blockPos.getX();
+        finalString += ",";
+        finalString += blockPos.getY();
+        finalString += ",";
+        finalString += blockPos.getZ();
+
+        return finalString;
+    }
+
+    public static BlockPos getBlockPosFromStringified(String str) {
+        ElectricLights.LOGGER.info("getBlockPosFromStringified");
+        ElectricLights.LOGGER.info(str);
+        String[] parts = str.split(",");
+        ElectricLights.LOGGER.info(Arrays.toString(parts));
+
+        return new BlockPos(
+            Integer.parseInt(parts[0]),
+            Integer.parseInt(parts[1]),
+            Integer.parseInt(parts[2])
+        );
     }
 }

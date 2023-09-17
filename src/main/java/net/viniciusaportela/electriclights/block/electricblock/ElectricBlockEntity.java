@@ -1,6 +1,5 @@
 package net.viniciusaportela.electriclights.block.electricblock;
 
-import com.mojang.logging.LogUtils;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.nbt.CompoundTag;
@@ -14,6 +13,7 @@ import net.minecraftforge.common.util.LazyOptional;
 import net.minecraftforge.energy.IEnergyStorage;
 import net.viniciusaportela.electriclights.CustomEnergyStorage;
 import net.viniciusaportela.electriclights.ElectricLights;
+import net.viniciusaportela.electriclights.ElectricLightsEventHandler;
 import net.viniciusaportela.electriclights.config.ServerConfig;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -88,15 +88,19 @@ public class ElectricBlockEntity extends BlockEntity {
     }
 
     private void saveConnectedBlocks(CompoundTag nbt) {
-        ElectricLights.LOGGER.info(connectedLightPositions.toString());
-        nbt.putString("connectedPositions", String.join(";", connectedLightPositions));
+        if (!connectedLightPositions.isEmpty()) {
+            nbt.putString("connectedPositions", String.join(";", connectedLightPositions));
+        }
     }
 
     private void loadConnectedBlocks(CompoundTag nbt) {
         String stringifedPositionsRaw = nbt.getString("connectedPositions");
-        String[] stringifedPositions = stringifedPositionsRaw.split(";");
 
-        connectedLightPositions.addAll(Arrays.asList(stringifedPositions));
+        if(!stringifedPositionsRaw.isEmpty()) {
+            String[] stringifedPositions = stringifedPositionsRaw.split(";");
+
+            connectedLightPositions.addAll(Arrays.asList(stringifedPositions));
+        }
     }
 
     public static <T extends BlockEntity> void tick(Level level, BlockPos blockPos, BlockState blockState, T blockEntity) {
@@ -119,10 +123,10 @@ public class ElectricBlockEntity extends BlockEntity {
         }
 
         if (electricBlockEntity.energyStorage.getEnergyStored() >= electricBlockEntity.connectedLightPositions.size() * energyUsagePerTick) {
-            ElectricBlockEventHandler.lightUpElectricLights(electricBlockEntity.getBlockPos(), electricBlockEntity.getLevel());
+            ElectricLightsEventHandler.lightUpElectricLights(electricBlockEntity.getBlockPos(), electricBlockEntity.getLevel());
             electricBlockEntity.energyStorage.extractEnergy(electricBlockEntity.connectedLightPositions.size() * energyUsagePerTick, false);
         } else {
-            ElectricBlockEventHandler.lightDownElectricLights(electricBlockEntity.getBlockPos(), electricBlockEntity.getLevel());
+            ElectricLightsEventHandler.lightDownElectricLights(electricBlockEntity.getBlockPos(), electricBlockEntity.getLevel());
         }
     }
 }

@@ -1,4 +1,4 @@
-package net.viniciusaportela.electriclights.block.electricblock;
+package net.viniciusaportela.electriclights;
 
 import net.minecraft.core.BlockPos;
 import net.minecraft.world.level.LevelAccessor;
@@ -9,6 +9,7 @@ import net.minecraftforge.event.level.BlockEvent;
 import net.minecraftforge.eventbus.api.SubscribeEvent;
 import net.minecraftforge.fml.common.Mod;
 import net.viniciusaportela.electriclights.ElectricLights;
+import net.viniciusaportela.electriclights.block.electricblock.ElectricBlockEntity;
 import net.viniciusaportela.electriclights.block.electriclight.ElectricLightBlock;
 import net.viniciusaportela.electriclights.config.ServerConfig;
 import net.viniciusaportela.electriclights.utils.BlockUtils;
@@ -17,7 +18,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 @Mod.EventBusSubscriber(modid = ElectricLights.MODID)
-public class ElectricBlockEventHandler {
+public class ElectricLightsEventHandler {
 
     @SubscribeEvent
     protected void onPlaceBlock(BlockEvent.EntityPlaceEvent event) {
@@ -27,7 +28,7 @@ public class ElectricBlockEventHandler {
             lookForNearElectricLights(event.getPos(), 5, event.getLevel());
         }
 
-        if (placedBlock.equals(ElectricLights.ELECTRIC_LIGHT_BLOCK.get())) {
+        if (placedBlock.defaultBlockState().is(ElectricLights.ELECTRIC_BLOCK_CONNECTABLES)) {
             connectToElectricBlock(event.getPos(), event.getLevel());
         }
     }
@@ -53,22 +54,20 @@ public class ElectricBlockEventHandler {
             lightDownElectricLights(event.getPos(), event.getLevel());
         }
 
-        if (brokeBlock.equals(ElectricLights.ELECTRIC_LIGHT_BLOCK.get())) {
+        if (brokeBlock.defaultBlockState().is(ElectricLights.ELECTRIC_BLOCK_CONNECTABLES)) {
             List<BlockPos> electricBlocks = BlockUtils.lookForBlocksInRange(event.getPos(), ServerConfig.ELECTRIC_BLOCK_RANGE.get(), ElectricLights.ELECTRIC_BLOCK.get(), event.getLevel());
             String electricLightStrinfiedPos = BlockUtils.getKeyFromBlockPos(event.getPos());
 
             for (BlockPos electricBlockPos: electricBlocks) {
                 ElectricBlockEntity entity = (ElectricBlockEntity) event.getLevel().getBlockEntity(electricBlockPos);
 
-                if (entity.connectedLightPositions.contains(electricLightStrinfiedPos)) {
-                    entity.connectedLightPositions.remove(electricLightStrinfiedPos);
-                }
+                entity.connectedLightPositions.remove(electricLightStrinfiedPos);
             }
         }
     }
 
     public void lookForNearElectricLights(BlockPos position, int radius, LevelAccessor level) {
-        List<BlockPos> electricLights = BlockUtils.lookForBlocksInRange(position, radius, ElectricLights.ELECTRIC_LIGHT_BLOCK.get(), level);
+        List<BlockPos> electricLights = BlockUtils.lookForBlocksInRange(position, radius, ElectricLights.ELECTRIC_BLOCK_CONNECTABLES, level);
 
         ElectricBlockEntity placedBlockEntity = (ElectricBlockEntity) level.getBlockEntity(position);
 
@@ -87,12 +86,14 @@ public class ElectricBlockEventHandler {
 
         if (blockEntity instanceof ElectricBlockEntity electricBlock) {
             for(String lightPosStringified: electricBlock.connectedLightPositions) {
-                BlockPos lightPos = BlockUtils.getBlockPosFromStringified(lightPosStringified);
+                if (!lightPosStringified.isEmpty()) {
+                    BlockPos lightPos = BlockUtils.getBlockPosFromStringified(lightPosStringified);
 
-                BlockState blockState = level.getBlockState(lightPos);
+                    BlockState blockState = level.getBlockState(lightPos);
 
-                if (blockState.getBlock().equals(ElectricLights.ELECTRIC_LIGHT_BLOCK.get())) {
-                    level.setBlock(lightPos, blockState.setValue(ElectricLightBlock.ACTIVE, true), 3);
+                    if (blockState.is(ElectricLights.ELECTRIC_BLOCK_CONNECTABLES)) {
+                        level.setBlock(lightPos, blockState.setValue(ElectricLightBlock.ACTIVE, true), 3);
+                    }
                 }
             }
         }
@@ -103,12 +104,10 @@ public class ElectricBlockEventHandler {
 
         if (electricBlock != null) {
             for(String lightPosStringified: electricBlock.connectedLightPositions) {
-                ElectricLights.LOGGER.info("light down electric lights");
-                ElectricLights.LOGGER.info(lightPosStringified);
                 BlockPos lightPos = BlockUtils.getBlockPosFromStringified(lightPosStringified);
                 BlockState blockState = level.getBlockState(lightPos);
 
-                if (blockState.getBlock().equals(ElectricLights.ELECTRIC_LIGHT_BLOCK.get())) {
+                if (blockState.is(ElectricLights.ELECTRIC_BLOCK_CONNECTABLES)) {
                     List<BlockPos> electricBlocksPos = BlockUtils.lookForBlocksInRange(lightPos, 5, ElectricLights.ELECTRIC_BLOCK.get(), level);
 
                     boolean hasFoundReplacer = false;

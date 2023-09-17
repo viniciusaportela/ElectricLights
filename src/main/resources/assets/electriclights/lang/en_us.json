@@ -1,4 +1,6 @@
 {
   "block.electriclights.electric_block": "Electric Block",
-  "block.electriclights.electric_light": "Electric Light"
+  "block.electriclights.electric_light": "Electric Light",
+  "itemGroup.electriclightscreativetab": "Electric Lights",
+  "block.electriclights.tubular_light": "Tubular Light"
 }

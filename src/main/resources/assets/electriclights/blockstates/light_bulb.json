@@ -1,0 +1,28 @@
+{
+  "variants": {
+    "facing=north,active=false": {
+      "model": "electriclights:block/light_bulb_off"
+    },
+    "facing=east,active=false": {
+      "model": "electriclights:block/light_bulb_off"
+    },
+    "facing=south,active=false": {
+      "model": "electriclights:block/light_bulb_off"
+    },
+    "facing=west,active=false": {
+      "model": "electriclights:block/light_bulb_off"
+    },
+    "facing=north,active=true": {
+      "model": "electriclights:block/light_bulb_on"
+    },
+    "facing=east,active=true": {
+      "model": "electriclights:block/light_bulb_on"
+    },
+    "facing=south,active=true": {
+      "model": "electriclights:block/light_bulb_on"
+    },
+    "facing=west,active=true": {
+      "model": "electriclights:block/light_bulb_on"
+    }
+  }
+}

@@ -1,5 +1,8 @@
 {
   "variants": {
-    "": {"model": "electriclights:block/electric_block"}
+    "facing=north": { "model": "electriclights:block/electric_block" },
+    "facing=east": { "model": "electriclights:block/electric_block", "y": 90 },
+    "facing=south": { "model": "electriclights:block/electric_block", "y": 180 },
+    "facing=west": { "model": "electriclights:block/electric_block", "y": 270 }
   }
 }
